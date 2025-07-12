@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Glasses Try-On (Flask & dlib - Streaming)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .btn-glasses.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center w-full max-w-3xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">Virtual Glasses Try-On</h1>
+        <p id="status" class="text-gray-400 mb-6">Streaming video dari server...</p>
+    </div>
+
+    <!-- Kontainer untuk video feed -->
+    <div class="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden shadow-2xl mb-6 border-4 border-gray-700 bg-black">
+        <!-- Gambar dari server akan ditampilkan di sini -->
+        <img id="video_feed" src="{{ url_for('video_feed') }}" class="w-full h-auto">
+    </div>
+
+    <!-- Kontrol untuk memilih kacamata -->
+    <div id="glasses-selector" class="flex flex-wrap justify-center gap-3 md:gap-4 mb-4">
+        <!-- Tombol akan dibuat oleh JavaScript -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const glassesSelector = document.getElementById('glasses-selector');
+            const statusElement = document.getElementById('status');
+            
+            // Inisialisasi koneksi WebSocket
+            const socket = io();
+
+            socket.on('connect', () => {
+                console.log('Terhubung ke server Flask!');
+                statusElement.textContent = 'Terhubung ke server. Ganti model kacamata di bawah.';
+            });
+
+            socket.on('disconnect', () => {
+                console.error('Koneksi ke server terputus.');
+                statusElement.textContent = 'Koneksi terputus. Silakan segarkan halaman.';
+            });
+
+            // Buat tombol pilihan kacamata secara dinamis
+            ['1', '2', '3', '4'].forEach((id, index) => {
+                const button = document.createElement('button');
+                button.innerText = `Model ${id}`;
+                button.className = 'btn-glasses bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition-transform duration-200';
+                
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.btn-glasses').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    console.log(`Mengubah ke model kacamata: ${id}`);
+                    socket.emit('change_glasses', { id: id });
+                });
+                
+                glassesSelector.appendChild(button);
+                
+                if (index === 0) {
+                    button.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
